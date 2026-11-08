@@ -1,0 +1,7 @@
+torch==2.5.1
+torchvision==0.20.1
+numpy==1.26.4
+PyYAML==6.0.2
+Pillow==11.0.0
+torchmetrics==1.6.1
+torch-fidelity==0.3.0
