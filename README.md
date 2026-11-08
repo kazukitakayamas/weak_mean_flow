@@ -31,7 +31,7 @@ python train.py \
   --config configs/weak_logitnormal_w20.yaml \
   --data-root /data/cifar10 \
   --output-root /outputs/weak_mean_flow \
-  --device cuda
+  --device cuda \
 　--total-steps 10
 ```
 
