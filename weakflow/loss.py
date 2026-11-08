@@ -13,7 +13,7 @@ def draw_comparison_features(d, cfg, generator):
 
     normal = lambda *shape: torch.randn(
         *shape,
-        device=DEVICE,
+        device=device,
         generator=generator,
         dtype=torch.float64,
     )
@@ -22,7 +22,7 @@ def draw_comparison_features(d, cfg, generator):
         normal(m, d) * (cfg["spatial_scale"] / math.sqrt(d)),
         normal(m) * cfg["time_scale"],
         normal(m) * cfg["time_scale"],
-        torch.rand(m, device=DEVICE, generator=generator, dtype=torch.float64) * (2 * math.pi))
+        torch.rand(m, device=device, generator=generator, dtype=torch.float64) * (2 * math.pi))
 
 
 def weak_summary(model, z, y, t, r, features, cfg):
@@ -75,7 +75,7 @@ def backward_comparison(model, method, batch, cfg, feature_rng):
     mb = cfg["micro_batch"]
 
     # objective、対角MSE、弱U統計量
-    metrics = torch.zeros(3, device=DEVICE, dtype=torch.float64)
+    metrics = torch.zeros(3, device=device, dtype=torch.float64)
 
     # ① 添付版と同じ適応重み付き対角損失
     for start in range(0, nd, mb):
@@ -95,8 +95,8 @@ def backward_comparison(model, method, batch, cfg, feature_rng):
     # 全サンプル・両方の計算で同じテスト関数を使用する。
     features = draw_comparison_features(d, cfg, feature_rng)
 
-    s_all = torch.zeros(cfg["features"], d, device=DEVICE, dtype=torch.float64)
-    q_all = torch.zeros((), device=DEVICE, dtype=torch.float64)
+    s_all = torch.zeros(cfg["features"], d, device=device, dtype=torch.float64)
+    q_all = torch.zeros((), device=device, dtype=torch.float64)
 
     # 1回目：勾配を保持せず、全非対角サンプルを集計。
     with torch.no_grad():
