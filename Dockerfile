@@ -18,6 +18,13 @@ RUN python -m pip install --no-cache-dir \
 
 # 今回の実験に必要な追加ライブラリ
 RUN python -m pip install --no-cache-dir \
+    --force-reinstall \
+    --no-deps \
+    --only-binary=:all: \
+    "ninja==1.11.1.3"
+
+# 今回の実験に必要な追加ライブラリ
+RUN python -m pip install --no-cache-dir \
     -c /opt/weakflow/constraints-docker.txt \
     -r /opt/weakflow/requirements.txt \
     && python -m pip check
