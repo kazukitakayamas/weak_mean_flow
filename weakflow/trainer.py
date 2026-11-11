@@ -81,6 +81,11 @@ def train(
     if cfg["batch_size"] < 4 or cfg["batch_size"] % 2:
         raise ValueError("batch_sizeは4以上の偶数にしてください")
 
+    rho = cfg.get("off_uniform_prob", 0.0)
+    if not 0 <= rho <= 1:
+        raise ValueError("off_uniform_prob must be in [0,1]")
+    mix_rng = torch.Generator(device=device) if rho else None
+
     for key in ("micro_batch", "features", "log_every", "save_every"):
         if not isinstance(cfg[key], int) or cfg[key] < 1:
             raise ValueError(f"{key}は正の整数にしてください")
@@ -180,7 +185,11 @@ def train(
         for group in opt.param_groups:
             group["lr"] = lr
 
-        batch = draw_comparison_batch(cfg, x_all, device)
+        if mix_rng is not None:
+            # Separate stream: A and B share data, flips, noise, base times and features.
+            # The absolute step makes the mixture reproducible after --resume.
+            mix_rng.manual_seed((cfg["seed"] * 2**32 + step) % (2**63))
+        batch = draw_comparison_batch(cfg, x_all, device, mix_rng)
 
         opt.zero_grad(set_to_none=True)
 
@@ -209,6 +218,12 @@ def train(
                 lr=lr,
             )
         )
+
+        if "off_uniform_prob" in cfg:
+            t, r = batch[2:]
+            h = (t - r)[len(t) // 2:]
+            n50, n90 = torch.stack([(h >= 0.5).sum(), (h >= 0.9).sum()]).tolist()
+            history[-1].update(n_off=len(h), h_ge_05=n50, h_ge_09=n90)
 
         if step == 1 or step % cfg["log_every"] == 0:
             recent = history[-cfg["log_every"]:]

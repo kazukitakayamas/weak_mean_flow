@@ -1,6 +1,6 @@
 import math
 import torch
-from .time_sampling import bc
+from .time_sampling import bc, off_time_score
 
 
 def adaptive_error(sq, cfg):
@@ -42,12 +42,7 @@ def weak_summary(model, z, y, t, r, features, cfg):
     # 従来の Aφ = ∂tφ + y・∇zφ
     aphi = (-xi.cos() - (1 - tt) * xi.sin() * (yy @ wz.T + wt))
 
-    # logit-normalの時刻分布に対応する補正。
-    # score = ∂t log q(r,t), q(r,t) = 2 p(r) p(t)
-    logit_t = tt.log() - torch.log1p(-tt)
-    score = (2 * tt - 1 - (logit_t - cfg["time_mean"]) / cfg["time_std"] ** 2) / (tt * (1 - tt))
-
-    aphi = aphi + score * phi
+    aphi = aphi + off_time_score(rr, tt, cfg) * phi
 
     # s = Σ_i K_i  （形状 M × d）
     s = aphi.T @ f + phi.T @ yy

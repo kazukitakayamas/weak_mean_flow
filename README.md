@@ -2,7 +2,9 @@
 
 CIFAR-10を用いた弱形式Mean Flowの学習・画像生成・FID評価を行う。
 
-この手順は、研究室サーバーに以下を準備済みであることを前提とする。
+Colabで20,000更新から長区間の割合を変える実験は [実行セル・数式とコードの対応](docs/long_interval.md) を参照。
+
+以下の手順は、研究室サーバーに以下を準備済みであることを前提とする。
 
 - リポジトリ：`~/projects/weak_mean_flow`
 - Dockerイメージ：`kazuki-weak-mean-flow:torch2.5.1-cu121`

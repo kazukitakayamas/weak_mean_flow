@@ -28,23 +28,26 @@ def generate(model, e, N=1, return_path=False):
 
 
 @torch.no_grad()
-def compute_fid(net, x_all, N=1, n=10000, bs=64, seed=42):
+def prepare_real_fid(x_all, device, bs):
     from torchmetrics.image.fid import FrechetInceptionDistance
 
+    fid = FrechetInceptionDistance(normalize=True, reset_real_features=False).to(device)
+    for x in x_all.split(bs):
+        fid.update(x.to(device).float() / 255.0, real=True)
+    return fid
+
+
+@torch.no_grad()
+def compute_fid(net, x_all, N=1, n=10000, bs=64, seed=42, real_fid=None):
     if n < 2 or bs < 1:
         raise ValueError("n >= 2、bs >= 1が必要です")
 
     device = next(net.parameters()).device
     net.eval()
 
-    fid = FrechetInceptionDistance(normalize=True).to(device)
-
-    # 実画像：学習データ50,000枚、拡張なし。
-    for i in range(0, len(x_all), bs):
-        fid.update(
-            x_all[i:i + bs].to(device).float() / 255.0,
-            real=True,
-        )
+    fid = real_fid if real_fid is not None else prepare_real_fid(x_all, device, bs)
+    if real_fid is not None:
+        fid.reset()  # clear generated statistics, keep the shared CIFAR-10 statistics
 
     # 評価専用の乱数生成器を使う。
     generator = torch.Generator(device=device).manual_seed(seed)
