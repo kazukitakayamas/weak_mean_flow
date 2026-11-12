@@ -116,8 +116,7 @@ def weak_summary(model, z, y, t, r, features, cfg):
 
 
 
-def backward_comparison(model, method, batch, cfg, feature_rng):
-    assert method == "weak"
+def backward_comparison(model, batch, cfg, feature_rng):
 
     z, y, t, r = batch
     device = z.device
