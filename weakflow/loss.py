@@ -7,6 +7,45 @@ def adaptive_error(sq, cfg):
     return sq / (sq.detach() + cfg["norm_eps"]) ** cfg["norm_p"]
 
 
+def color_edge_directions(m, d, generator):
+
+    side, window = 32, 8
+    if d != 3 * side * side or m < 2 or m % 2:
+        raise ValueError("color/edge features require RGB 32x32 and an even count >= 2")
+    
+    half = m // 2
+    device = generator.device
+    rng = dict(device=device, generator=generator)
+
+    # 各関数が見る8×8領域を、32×32画像の中から選ぶ
+    axis = torch.arange(side, device=device)
+    top, left = torch.randint(side - window + 1, (2, m, 1, 1), **rng)
+    row = axis[None, :, None] - top
+    col = axis[None, None, :] - left
+    patch = (row >= 0) & (row < window) & (col >= 0) & (col < window)
+
+    # 前半64本：領域内の R-G、G-B、B-R のいずれかを測る
+    palette = torch.tensor(
+        [[1, -1, 0], [0, 1, -1], [-1, 0, 1]],
+        dtype = torch.float64,
+        device = device,
+    )
+    channels = palette[torch.randint(3, (half,), **rng)]
+    color = channels[:, :, None, None] * patch[:half, None]
+
+    vertical = torch.randint(2, (half, 1, 1), **rng).bool()
+    positive = torch.where(
+        vertical,
+        col[half:] < window // 2,
+        row[half:] < window // 2,
+    )
+
+    signed_patch = patch[half:] * (2 * positive.to(torch.float64) - 1)
+    edge = signed_patch[:, None].expand(-1, 3, -1, -1)
+
+    wz = torch.cat((color, edge), dim=0).flatten(1)
+    return torch.nn.functional.normalize(wz, dim=1)
+
 def draw_comparison_features(d, cfg, generator):
     device = generator.device
     m = cfg["features"]
@@ -18,11 +57,26 @@ def draw_comparison_features(d, cfg, generator):
         dtype=torch.float64,
     )
 
+    if "color_loss_share" in cfg:
+        share = float(cdg["color_loss_share"])
+        if not 0 <= share <= 1:
+            raise ValueError("color_loss_share must be in [0, 1]")
+        wz = color_edge_directions(m, d, generator) * cfg["spatial_scale"]
+
+        amplitude = wz.new_empty(m)
+        amplitude[:m // 2] = math.sqrt(2 * share) #色
+        amplitude[m // 2:] = math.sqrt(2 * (1 - share)) #輪郭
+    else:
+        wz = normal(m, d) * (cfg["spatial_scale"] / math.sqrt(d))
+        amplitude = 1.0
+
     return (
-        normal(m, d) * (cfg["spatial_scale"] / math.sqrt(d)),
+        wz,
         normal(m) * cfg["time_scale"],
         normal(m) * cfg["time_scale"],
-        torch.rand(m, device=device, generator=generator, dtype=torch.float64) * (2 * math.pi))
+        torch.rand(m, device=device, generator=generator, dtype=torch.float64) * (2 * math.pi),
+        amplitude,
+    )
 
 
 def weak_summary(model, z, y, t, r, features, cfg):
@@ -34,14 +88,17 @@ def weak_summary(model, z, y, t, r, features, cfg):
     tt = t.double()[:, None]
     rr = r.double()[:, None]
 
-    wz, wr, wt, phase = features
+    wz, wr, wt, phase, amplitude = features
 
     xi = zz @ wz.T + rr * wr + tt * wt + phase
+
+    cos_xi = amplitude * xi.cos()
+    sin_xi = amplitude * xi.sin()
+    
     phi = (1 - tt) * xi.cos()
 
     # 従来の Aφ = ∂tφ + y・∇zφ
-    aphi = (-xi.cos() - (1 - tt) * xi.sin() * (yy @ wz.T + wt))
-
+    aphi = -cos_xi - (1 - tt) * sin_xi * (yy @ wz.T + wt)
     aphi = aphi + off_time_score(rr, tt, cfg) * phi
 
     # s = Σ_i K_i  （形状 M × d）
