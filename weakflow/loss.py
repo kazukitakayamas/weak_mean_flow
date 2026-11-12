@@ -58,7 +58,7 @@ def draw_comparison_features(d, cfg, generator):
     )
 
     if "color_loss_share" in cfg:
-        share = float(cdg["color_loss_share"])
+        share = float(cfg["color_loss_share"])
         if not 0 <= share <= 1:
             raise ValueError("color_loss_share must be in [0, 1]")
         wz = color_edge_directions(m, d, generator) * cfg["spatial_scale"]
@@ -95,7 +95,7 @@ def weak_summary(model, z, y, t, r, features, cfg):
     cos_xi = amplitude * xi.cos()
     sin_xi = amplitude * xi.sin()
     
-    phi = (1 - tt) * xi.cos()
+    phi = (1 - tt) * xi.cos_xi
 
     # 従来の Aφ = ∂tφ + y・∇zφ
     aphi = -cos_xi - (1 - tt) * sin_xi * (yy @ wz.T + wt)
