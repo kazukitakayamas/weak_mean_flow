@@ -21,9 +21,6 @@ def generate(model, e, N=1):
 
         z = z - bc(t - r) * model(z, r, t)
 
-        if return_path:
-            path.append(z.clone())
-
     return z
 
 
