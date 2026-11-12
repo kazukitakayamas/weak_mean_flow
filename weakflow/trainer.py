@@ -194,7 +194,7 @@ def train(
         opt.zero_grad(set_to_none=True)
 
         metrics = backward_comparison(
-            model, "weak", batch, cfg, feature_rng,
+            model, batch, cfg, feature_rng,
         )
 
         if not bool(torch.isfinite(metrics).all()):
