@@ -1,4 +1,4 @@
-experiment_name: weak_logitnormal_w20_dualema
+experiment_name: weak_color_edge_w20_dualema
 seed: 42
 total_steps: 20000
 
@@ -16,6 +16,7 @@ norm_p: 1.0
 norm_eps: 0.01
 
 features: 128
+color_loss_share: 0.5
 spatial_scale: 1.0
 time_scale: 1.0
 lambda_off: 20.0
