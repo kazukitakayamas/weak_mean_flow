@@ -95,7 +95,7 @@ def weak_summary(model, z, y, t, r, features, cfg):
     cos_xi = amplitude * xi.cos()
     sin_xi = amplitude * xi.sin()
     
-    phi = (1 - tt) * xi.cos_xi
+    phi = (1 - tt) * cos_xi
 
     # 従来の Aφ = ∂tφ + y・∇zφ
     aphi = -cos_xi - (1 - tt) * sin_xi * (yy @ wz.T + wt)
