@@ -4,7 +4,7 @@ from .time_sampling import bc
 
 
 @torch.no_grad()
-def generate(model, e, N=1, return_path=False):
+def generate(model, e, N=1):
     if N < 1:
         raise ValueError("NFEは1以上にしてください")
 
@@ -24,7 +24,7 @@ def generate(model, e, N=1, return_path=False):
         if return_path:
             path.append(z.clone())
 
-    return (z, torch.stack(path, 1)) if return_path else z
+    return z
 
 
 @torch.no_grad()
